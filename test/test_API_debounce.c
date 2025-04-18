@@ -69,10 +69,6 @@ void test_LED_enciende_con_pulsacion_estable(void) {
 
     btn_state = true; // Simula que el botón está presionado.
 
-    // Ignoramos la llamada a delayInit() para evitar conflictos en la simulación.
-    delayInit_Ignore();
-
-    // Esperamos que delayInit sea llamado una vez, solo al principio
     delayInit_Expect(NULL, TIEMPO_RETARDO);
 
     // Primera comprobación de la lectura del botón.
@@ -89,7 +85,7 @@ void test_LED_enciende_con_pulsacion_estable(void) {
     // Se espera que la función IO_Write encienda el LED.
     IO_Write_ExpectAndReturn(IO_LED_DEBUG, true, IO_OK);
 
-    // Llamadas a debounceFSM_Update para simular el flujo del programa.
+    // Llamadas a debounceFSM_Update para simular el flujo del programa
     debounceFSM_Update();
     debounceFSM_Update();
 }
