@@ -104,7 +104,6 @@
     - src/**
   :include:
     - inc/** # In simple projects, this entry often duplicates :source
-    #- build/test/mocks
   :support:
     - test/support
   :libraries: []
@@ -150,7 +149,7 @@
     - :callback
     - :return_thru_ptr
     - :expect_any_args
-    #- :expect_and_return_thru_ptr
+
   :verbosity:  2                   # the options being 0 errors only, 1 warnings and errors, 2 normal info, 3 verbose
   :when_no_prototypes:  :warn      # the options being :ignore, :warn, or :erro
 

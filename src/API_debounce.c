@@ -100,6 +100,7 @@ void debounceFSM_Update() {
         break;
 
     case BUTTON_DOWN:
+        IO_Read(IO_BUTTON_USER, &buttonState);
         if (!buttonState) {
             estadoActual = BUTTON_RISING;
             delayRead(&tiempoRetardo);
