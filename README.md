@@ -1,4 +1,8 @@
-# Trabajo Práctico Número 4
+# Trabajo Práctico Número 3
+
+## Descripción del proyecto
+
+Este trabajo práctico consiste en pruebas unitarias de la implementación de una máquina de estados finitos (FSM) para el manejo del antirrebote de un botón físico (debounce) utilizando lenguaje C. Se incluye un conjunto de pruebas unitarias desarrolladas con Unity y CMock para verificar el correcto funcionamiento del sistema ante diferentes secuencias de entradas simuladas, asi como los archivos fuente necesarios.
 
 ## Uso del repositorio
 
