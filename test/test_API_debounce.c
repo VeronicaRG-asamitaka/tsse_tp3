@@ -39,15 +39,18 @@ SPDX-License-Identifier: MIT
 #include "API_debounce.h"
 
 /* === Macros definitions ====================================================================== */
+#define MAX_LECTURAS              10
+#define INDICE_INICIAL_LECTURA    0
+#define CONTEO_INICIAL_ESCRITURAS 0
 
 /* === Private data type declarations ========================================================== */
 
 /* === Private variable declarations =========================================================== */
-static int conteo_escrituras = 0;
+static int conteo_escrituras = CONTEO_INICIAL_ESCRITURAS;
 static bool ultimo_estado_led = false;
 
-static bool lecturas_boton[10];
-static int indice_lectura = 0;
+static bool lecturas_boton[MAX_LECTURAS];
+static int indice_lectura = INDICE_INICIAL_LECTURA;
 
 /* === Private function declarations =========================================================== */
 
@@ -59,6 +62,21 @@ static int indice_lectura = 0;
 
 /* === Public function implementation ========================================================== */
 
+//! * @brief Carga una secuencia de lecturas de botón para simular en el test.
+void simular_lecturas(bool * secuencia, int cantidad) {
+    TEST_ASSERT_LESS_OR_EQUAL(MAX_LECTURAS, cantidad);
+    memcpy(lecturas_boton, secuencia, cantidad * sizeof(bool));
+    indice_lectura = INDICE_INICIAL_LECTURA;
+}
+
+//! * @brief Ejecuta la función debounceFSM_Update() la cantidad de veces especificada.
+void realizar_actualizaciones(int cantidad) {
+    for (int i = 0; i < cantidad; i++) {
+        debounceFSM_Update();
+    }
+}
+
+/* === Public function for Callcack ============================================================ */
 //! * @brief Callback simulado que registra el número de escrituras y el último estado del LED.
 void IO_Write_Callback(IO_Device_t device, bool state) {
     if (device == IO_LED_DEBUG) {
@@ -69,7 +87,7 @@ void IO_Write_Callback(IO_Device_t device, bool state) {
 
 //! * @brief Función fake que simula lecturas del botón desde una secuencia predefinida.
 bool IO_Read_Fake(IO_Device_t device, bool * state) {
-    if (indice_lectura < sizeof(lecturas_boton) / sizeof(lecturas_boton[0])) {
+    if (indice_lectura < sizeof(lecturas_boton) / sizeof(lecturas_boton[INDICE_INICIAL_LECTURA])) {
         *state = lecturas_boton[indice_lectura++];
         return IO_OK;
     } else {
@@ -79,9 +97,9 @@ bool IO_Read_Fake(IO_Device_t device, bool * state) {
 }
 
 void setUp(void) {
-    conteo_escrituras = 0;
+    conteo_escrituras = CONTEO_INICIAL_ESCRITURAS;
     ultimo_estado_led = false;
-    indice_lectura = 0;
+    indice_lectura = INDICE_INICIAL_LECTURA;
 
     IO_Write_StubWithCallback(IO_Write_Callback);
     IO_Read_StubWithCallback(IO_Read_Fake);
@@ -91,16 +109,18 @@ void setUp(void) {
 }
 
 //! * @test 1. El LED se enciende correctamente al detectar una pulsación estable del botón.
+// Llamadas  Entrada  Acción esperada
+// 1         false    BUTTON_UP (estado inicial)
+// 2         true     BUTTON_FALLING
+// 3         true     BUTTON_DOWN (enciende LED)
 void test_LED_enciende_con_pulsacion_estable(void) {
 
     bool secuencia[] = {false, true, true};
-    memcpy(lecturas_boton, secuencia, sizeof(secuencia));
+    simular_lecturas(secuencia, 3);
 
     debounceFSM_Init();
 
-    debounceFSM_Update(); // BUTTON_UP -> BUTTON_FALLING
-    debounceFSM_Update(); // BUTTON_FALLING -> BUTTON_DOWN y LED se enciende
-    debounceFSM_Update(); // BUTTON_DOWN -> sigue ahí
+    realizar_actualizaciones(3);
 
     // Se verifica que se llamó a IO_Write 2 veces: (false en Init y true al presionar)
     TEST_ASSERT_EQUAL(2, conteo_escrituras);
@@ -110,69 +130,83 @@ void test_LED_enciende_con_pulsacion_estable(void) {
 }
 
 //! * @test 2. El LED se apaga correctamente al soltar el botón después de una pulsación.
+// Llamadas  Entrada  Acción esperada
+// 1         false    BUTTON_UP (estado inicial)
+// 2         true     BUTTON_FALLING
+// 3         true     BUTTON_DOWN (enciende LED)
+// 4         false    BUTTON_RISING
+// 5         false    BUTTON_UP (apaga LED)
 void test_LED_se_apaga_al_soltar_boton(void) {
 
     bool secuencia[] = {false, true, true, false, false};
-    memcpy(lecturas_boton, secuencia, sizeof(secuencia));
+    simular_lecturas(secuencia, 5);
 
     debounceFSM_Init();
 
-    debounceFSM_Update(); // UP -> FALLING
-    debounceFSM_Update(); // FALLING -> DOWN (enciende LED)
-    debounceFSM_Update(); // mantiene DOWN
-    debounceFSM_Update(); // DOWN -> RISING
-    debounceFSM_Update(); // RISING -> UP (apaga LED)
+    realizar_actualizaciones(5);
 
     TEST_ASSERT_EQUAL(3, conteo_escrituras);
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
 //! * @test 3. El estado del LED no cambia si el botón permanece sin cambios.
+// Llamadas  Entrada  Acción esperada
+// 1         false    BUTTON_UP (estado inicial)
+// 2         false    BUTTON_UP
+// 3         false    BUTTON_UP (sin cambios en el estado del LED)
 void test_LED_no_cambia_si_estado_del_boton_no_cambia(void) {
 
     bool secuencia[] = {false, false, false};
-    memcpy(lecturas_boton, secuencia, sizeof(secuencia));
+    simular_lecturas(secuencia, 3);
 
     debounceFSM_Init();
 
-    debounceFSM_Update();
-    debounceFSM_Update();
-    debounceFSM_Update();
+    realizar_actualizaciones(3);
 
     TEST_ASSERT_EQUAL(1, conteo_escrituras); // Solo el Init
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
 //! * @test 4. El LED no se enciende si hay rebote en la señal del botón.
+// Llamadas  Entrada  Acción esperada
+// 1         false    BUTTON_UP (estado inicial)
+// 2         true     BUTTON_FALLING
+// 3         false    BUTTON_UP (rebote detectado)
+// 4         false    BUTTON_UP (no se enciende el LED)
 void test_LED_no_enciende_si_hay_rebote(void) {
 
     bool secuencia[] = {false, true, false, false};
-    memcpy(lecturas_boton, secuencia, sizeof(secuencia));
+    simular_lecturas(secuencia, 4);
 
     debounceFSM_Init();
 
-    debounceFSM_Update();
-    debounceFSM_Update();
-    debounceFSM_Update();
+    realizar_actualizaciones(4);
 
     TEST_ASSERT_EQUAL(1, conteo_escrituras); // Solo el init
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
 //! * @test 5. El LED se activa solo una vez por cada pulsación completa del botón.
+// Llamadas  Entrada  Acción esperada
+// 1         false    BUTTON_UP (estado inicial)
+// 2         true     BUTTON_FALLING
+// 3         true     BUTTON_DOWN (enciende LED)
+// 4         true     BUTTON_DOWN
+// 5         true     BUTTON_DOWN
+// 6         false    BUTTON_RISING
+// 7         false    BUTTON_UP (apaga LED)
 void test_LED_solo_se_activa_una_vez_por_pulsacion(void) {
 
     bool secuencia[] = {false, true, true, true, true, false, false};
-    memcpy(lecturas_boton, secuencia, sizeof(secuencia));
+    simular_lecturas(secuencia, 7);
 
     debounceFSM_Init();
 
-    for (int i = 0; i < 7; i++) {
-        debounceFSM_Update();
-    }
+    realizar_actualizaciones(7);
 
     // LED se enciende al presionar (una vez), se apaga al soltar (una vez)
     TEST_ASSERT_EQUAL(3, conteo_escrituras);
+    TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
 /* === End of documentation ==================================================================== */
