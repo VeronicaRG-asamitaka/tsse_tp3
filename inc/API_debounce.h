@@ -37,7 +37,6 @@ SPDX-License-Identifier: MIT
 #include <stdbool.h>
 #endif
 
-// #include "stm32f4xx_hal.h"
 #include "API_delay.h"
 #include "API_IO.h"
 

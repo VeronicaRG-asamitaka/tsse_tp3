@@ -37,7 +37,6 @@ SPDX-License-Identifier: MIT
 #ifndef __STDBOOL_H_
 #include <stdbool.h>
 #endif
-// #include "stm32f4xx_hal.h"
 
 /* === Cabecera C++ ============================================================================ */
 

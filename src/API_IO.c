@@ -29,7 +29,6 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions =============================================================== */
 
 #include "API_IO.h"
-// #include "stm32f4xx_hal.h"
 #include "main.h"
 
 /* === Macros definitions ====================================================================== */
