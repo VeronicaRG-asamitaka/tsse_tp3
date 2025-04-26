@@ -24,14 +24,6 @@ SPDX-License-Identifier: MIT
  * @brief Pruebas unitarias para la librería de API_debounce
  */
 
-/*
-1. Inicialización: FSM inicia en BUTTON_UP con flags en false.
-2. Pulsación válida: transición completa UP → FALLING → DOWN con LED encendido.
-3. Liberación válida: transición completa DOWN → RISING → UP con LED apagado.
-4. Rebotes en pulsación: la FSM descarta cambios bruscos durante FALLING.
-5. Rebotes en liberación: la FSM descarta cambios bruscos durante RISING.
-*/
-
 /* === Headers files inclusions =============================================================== */
 #include "unity.h"
 #include "mock_API_delay.h"
@@ -116,16 +108,15 @@ void setUp(void) {
 void test_LED_enciende_con_pulsacion_estable(void) {
 
     bool secuencia[] = {false, true, true};
+
     simular_lecturas(secuencia, 3);
 
     debounceFSM_Init();
 
     realizar_actualizaciones(3);
 
-    // Se verifica que se llamó a IO_Write 2 veces: (false en Init y true al presionar)
     TEST_ASSERT_EQUAL(2, conteo_escrituras);
 
-    // Verificamos que el LED esté encendido
     TEST_ASSERT_TRUE(ultimo_estado_led);
 }
 
@@ -139,6 +130,7 @@ void test_LED_enciende_con_pulsacion_estable(void) {
 void test_LED_se_apaga_al_soltar_boton(void) {
 
     bool secuencia[] = {false, true, true, false, false};
+
     simular_lecturas(secuencia, 5);
 
     debounceFSM_Init();
@@ -146,6 +138,7 @@ void test_LED_se_apaga_al_soltar_boton(void) {
     realizar_actualizaciones(5);
 
     TEST_ASSERT_EQUAL(3, conteo_escrituras);
+
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
@@ -157,13 +150,15 @@ void test_LED_se_apaga_al_soltar_boton(void) {
 void test_LED_no_cambia_si_estado_del_boton_no_cambia(void) {
 
     bool secuencia[] = {false, false, false};
+
     simular_lecturas(secuencia, 3);
 
     debounceFSM_Init();
 
     realizar_actualizaciones(3);
 
-    TEST_ASSERT_EQUAL(1, conteo_escrituras); // Solo el Init
+    TEST_ASSERT_EQUAL(1, conteo_escrituras);
+
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
@@ -176,13 +171,15 @@ void test_LED_no_cambia_si_estado_del_boton_no_cambia(void) {
 void test_LED_no_enciende_si_hay_rebote(void) {
 
     bool secuencia[] = {false, true, false, false};
+
     simular_lecturas(secuencia, 4);
 
     debounceFSM_Init();
 
     realizar_actualizaciones(4);
 
-    TEST_ASSERT_EQUAL(1, conteo_escrituras); // Solo el init
+    TEST_ASSERT_EQUAL(1, conteo_escrituras);
+
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
@@ -198,14 +195,15 @@ void test_LED_no_enciende_si_hay_rebote(void) {
 void test_LED_solo_se_activa_una_vez_por_pulsacion(void) {
 
     bool secuencia[] = {false, true, true, true, true, false, false};
+
     simular_lecturas(secuencia, 7);
 
     debounceFSM_Init();
 
     realizar_actualizaciones(7);
 
-    // LED se enciende al presionar (una vez), se apaga al soltar (una vez)
     TEST_ASSERT_EQUAL(3, conteo_escrituras);
+
     TEST_ASSERT_FALSE(ultimo_estado_led);
 }
 
